@@ -1,7 +1,9 @@
 from django.db import models
+from apps.users.models import CustomUser
 
 
 class Company(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=100)
     description = models.TextField()
     address = models.CharField(max_length=100)

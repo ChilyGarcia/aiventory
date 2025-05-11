@@ -8,10 +8,14 @@ class CompanyService:
     def get_all(self):
         return self.repository.get_all()
 
+    def get_by_user(self, user):
+        return self.repository.get_by_user(user)
+
     def get_by_id(self, id):
         return self.repository.get_by_id(id)
 
-    def create(self, company):
+    def create(self, company, user):
+        company.user = user
         return self.repository.create(company)
 
     def update(self, company):

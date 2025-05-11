@@ -7,16 +7,22 @@ class CompanyRepository:
         return Company.objects.all()
 
     @staticmethod
+    def get_by_user(user):
+        return Company.objects.filter(user=user)
+
+    @staticmethod
     def get_by_id(id):
         return Company.objects.get(id=id)
 
     @staticmethod
     def create(company):
-        return Company.objects.create(**company)
+        company.save()
+        return company
 
     @staticmethod
     def update(company):
-        return Company.objects.update(**company)
+        company.save()
+        return company
 
     @staticmethod
     def delete(id):

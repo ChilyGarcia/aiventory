@@ -18,10 +18,6 @@ class CompanyViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-            if not request.user.role or request.user.role.name != "entrepreneur":
-                msg = "Solo emprendedores pueden ver compañías"
-                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
-
             companies = self.service.get_all_by_user(request.user)
             serializer = CompanySerializer(companies, many=True)
             return Response(serializer.data)
@@ -32,10 +28,6 @@ class CompanyViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         try:
-            if not request.user.role or request.user.role.name != "entrepreneur":
-                msg = "Solo emprendedores pueden ver compañías"
-                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
-
             company = self.service.get_by_id(pk)
             if not company:
                 return Response(
@@ -51,12 +43,34 @@ class CompanyViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-    @custom_permission_required("create_company")
     def create(self, request):
         try:
-            if not request.user.role or request.user.role.name != "entrepreneur":
-                msg = "Solo emprendedores pueden crear compañías"
-                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
+            # Obtener o crear el rol de entrepreneur
+            entrepreneur_role, _ = Role.objects.get_or_create(name=Role.ENTREPRENEUR)
+            
+            # Asignar el rol al usuario
+            request.user.role = entrepreneur_role
+            
+            # Asignar todos los permisos necesarios
+            permissions = [
+                'create_company',
+                'manage_company_users',
+                'view_companies',
+                'manage_employees',
+                'view_products',
+                'create_product',
+                'edit_product',
+                'delete_product'
+            ]
+            
+            for perm_name in permissions:
+                try:
+                    perm = Permission.objects.get(codename=perm_name)
+                    request.user.custom_permissions.add(perm)
+                except Permission.DoesNotExist:
+                    continue
+            
+            request.user.save()
 
             serializer = CompanySerializer(data=request.data)
             if serializer.is_valid():

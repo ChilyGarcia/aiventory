@@ -8,7 +8,17 @@ class CompanyRepository:
 
     @staticmethod
     def get_by_user(user):
-        return Company.objects.filter(user=user).first()
+        # Obtener compañías donde el usuario es dueño
+        owned_companies = Company.objects.filter(user=user).all()
+        
+        # Obtener la compañía donde el usuario es empleado
+        if user.company:
+            employee_company = [user.company]
+        else:
+            employee_company = []
+        
+        # Combinar ambas listas y eliminar duplicados
+        return list(set(list(owned_companies) + employee_company))
 
     @staticmethod
     def get_by_id(id):
@@ -26,4 +36,6 @@ class CompanyRepository:
 
     @staticmethod
     def delete(id):
-        return Company.objects.delete(id=id)
+        company = Company.objects.get(id=id)
+        company.delete()
+        return True

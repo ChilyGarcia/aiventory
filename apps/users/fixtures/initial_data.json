@@ -1,0 +1,92 @@
+[
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can create company",
+            "content_type": ["company", "company"],
+            "codename": "create_company"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can manage company users",
+            "content_type": ["company", "company"],
+            "codename": "manage_company_users"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can view companies",
+            "content_type": ["company", "company"],
+            "codename": "view_companies"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can manage employees",
+            "content_type": ["company", "company"],
+            "codename": "manage_employees"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can view products",
+            "content_type": ["product", "product"],
+            "codename": "view_products"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can create product",
+            "content_type": ["product", "product"],
+            "codename": "create_product"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can edit product",
+            "content_type": ["product", "product"],
+            "codename": "edit_product"
+        }
+    },
+    {
+        "model": "auth.permission",
+        "fields": {
+            "name": "Can delete product",
+            "content_type": ["product", "product"],
+            "codename": "delete_product"
+        }
+    },
+    {
+        "model": "users.role",
+        "fields": {
+            "name": "entrepreneur",
+            "permissions": [
+                ["create_company", "company", "company"],
+                ["manage_company_users", "company", "company"],
+                ["view_companies", "company", "company"],
+                ["manage_employees", "company", "company"],
+                ["view_products", "product", "product"],
+                ["create_product", "product", "product"],
+                ["edit_product", "product", "product"],
+                ["delete_product", "product", "product"]
+            ]
+        }
+    },
+    {
+        "model": "users.role",
+        "fields": {
+            "name": "employee",
+            "permissions": [
+                ["view_companies", "company", "company"],
+                ["view_products", "product", "product"]
+            ]
+        }
+    }
+]

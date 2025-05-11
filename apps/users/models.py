@@ -60,19 +60,23 @@ class CustomUser(AbstractUser):
         related_name='custom_user_permissions',
         help_text='Specific permissions for this user.'
     )
-    
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
 
     def has_custom_permission(self, permission_name):
-        if self.role and self.role.has_permission(permission_name):
+        # Verificar si el usuario tiene el permiso directamente
+        if self.custom_permissions.filter(codename=permission_name).exists():
             return True
-        return self.custom_permissions.filter(
-            codename=permission_name
-        ).exists()
+        
+        # Si no tiene el permiso directamente y no tiene rol, no tiene el permiso
+        if not self.role:
+            return False
+        
+        # Verificar si el rol tiene el permiso
+        return self.role.has_permission(permission_name)
 
     def __str__(self):
         return self.email
-        return self.custom_permissions.filter(codename=perm).exists()

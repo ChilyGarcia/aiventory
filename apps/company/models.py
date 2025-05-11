@@ -3,7 +3,12 @@ from apps.users.models import CustomUser
 
 
 class Company(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name='owned_companies'
+    )
     name = models.CharField(max_length=100)
     description = models.TextField()
     address = models.CharField(max_length=100)

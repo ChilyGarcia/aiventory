@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.product",
     "apps.company",
+    "apps.plan",
+    "apps.subscription",
 ]
 
 

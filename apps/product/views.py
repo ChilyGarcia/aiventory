@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from apps.product.services.product_service import ProductService
 from apps.product.serializers import ProductSerializer
 from apps.company.services.company_service import CompanyService
+from apps.users.decorators import custom_permission_required
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -15,6 +16,7 @@ class ProductViewSet(viewsets.ViewSet):
         self.service = ProductService()
         self.company_service = CompanyService()
 
+    @custom_permission_required('view_products')
     def list(self, request):
         try:
             company = self.company_service.get_by_user(request.user)
@@ -32,13 +34,14 @@ class ProductViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @custom_permission_required('view_products')
     def retrieve(self, request, pk=None):
         try:
             company = self.company_service.get_by_user(request.user)
             if not company:
                 return Response(
                     {"error": "El usuario no tiene una compañía asignada"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
             product = self.service.get_by_id(pk)
@@ -52,6 +55,7 @@ class ProductViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+    @custom_permission_required('create_product')
     def create(self, request):
         try:
             company = self.company_service.get_by_user(request.user)
@@ -71,13 +75,14 @@ class ProductViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @custom_permission_required('edit_product')
     def update(self, request, pk=None):
         try:
             company = self.company_service.get_by_user(request.user)
             if not company:
                 return Response(
                     {"error": "El usuario no tiene una compañía asignada"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
             product = self.service.get_by_id(pk)
@@ -94,6 +99,7 @@ class ProductViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+    @custom_permission_required('delete_product')
     def destroy(self, request, pk=None):
         try:
             company = self.company_service.get_by_user(request.user)

@@ -1,12 +1,12 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.company.services.company_service import CompanyService
 from apps.company.serializers import CompanySerializer
 
 
 class CompanyViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

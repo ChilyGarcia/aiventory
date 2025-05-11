@@ -8,7 +8,7 @@ class CompanyRepository:
 
     @staticmethod
     def get_by_user(user):
-        return Company.objects.filter(user=user)
+        return Company.objects.filter(user=user).first()
 
     @staticmethod
     def get_by_id(id):

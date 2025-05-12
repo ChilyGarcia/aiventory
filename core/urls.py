@@ -9,4 +9,5 @@ urlpatterns = [
     # API endpoints
     path("api/", include("apps.company.urls")),
     path("api/", include("apps.product.urls")),
+    path("api/", include("apps.supplier.urls")),
 ]

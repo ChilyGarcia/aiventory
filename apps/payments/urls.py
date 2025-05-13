@@ -3,8 +3,8 @@ from django.urls import path, include
 from .views import WompiTransactionViewSet
 
 router = DefaultRouter()
-router.register(r'transactions', WompiTransactionViewSet, basename='wompi-transaction')
+router.register(r"transactions", WompiTransactionViewSet, basename="wompi-transaction")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

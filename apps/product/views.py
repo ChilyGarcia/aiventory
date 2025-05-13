@@ -16,7 +16,7 @@ class ProductViewSet(viewsets.ViewSet):
         self.service = ProductService()
         self.company_service = CompanyService()
 
-    @custom_permission_required('view_products')
+    @custom_permission_required("view_products")
     def list(self, request):
         try:
             companies = self.company_service.get_all_by_user(request.user)
@@ -39,7 +39,7 @@ class ProductViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @custom_permission_required('view_products')
+    @custom_permission_required("view_products")
     def retrieve(self, request, pk=None):
         try:
             companies = self.company_service.get_all_by_user(request.user)
@@ -53,7 +53,7 @@ class ProductViewSet(viewsets.ViewSet):
             if not product:
                 return Response(
                     {"error": "Producto no encontrado"},
-                    status=status.HTTP_404_NOT_FOUND
+                    status=status.HTTP_404_NOT_FOUND,
                 )
 
             if product.company not in companies:
@@ -67,7 +67,7 @@ class ProductViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-    @custom_permission_required('create_product')
+    @custom_permission_required("create_product")
     def create(self, request):
         try:
             companies = self.company_service.get_all_by_user(request.user)
@@ -91,21 +91,21 @@ class ProductViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @custom_permission_required('edit_product')
+    @custom_permission_required("edit_product")
     def update(self, request, pk=None):
         try:
             companies = self.company_service.get_all_by_user(request.user)
             if not companies:
                 return Response(
                     {"error": "El usuario no tiene compañías asignadas"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             product = self.service.get_by_id(pk)
             if not product:
                 return Response(
                     {"error": "Producto no encontrado"},
-                    status=status.HTTP_404_NOT_FOUND
+                    status=status.HTTP_404_NOT_FOUND,
                 )
 
             if product.company not in companies:
@@ -122,7 +122,7 @@ class ProductViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-    @custom_permission_required('delete_product')
+    @custom_permission_required("delete_product")
     def destroy(self, request, pk=None):
         try:
             companies = self.company_service.get_all_by_user(request.user)
@@ -131,21 +131,21 @@ class ProductViewSet(viewsets.ViewSet):
                     {"error": "El usuario no tiene una compañía asignada"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             product = self.service.get_by_id(pk)
             if not product:
                 return Response(
                     {"error": "Producto no encontrado"},
-                    status=status.HTTP_404_NOT_FOUND
+                    status=status.HTTP_404_NOT_FOUND,
                 )
-            
+
             # Verificar que el producto pertenece a una de las compañías del usuario
             if product.company not in companies:
                 return Response(
                     {"error": "No tienes permiso para eliminar este producto"},
-                    status=status.HTTP_403_FORBIDDEN
+                    status=status.HTTP_403_FORBIDDEN,
                 )
-            
+
             self.service.delete(pk)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:

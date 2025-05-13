@@ -10,21 +10,20 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
 
     def create(self, request, *args, **kwargs):
-        # Verificar si el usuario ya tiene una suscripción activa
         active_subscription = Subscription.objects.filter(
-            user=request.user, is_active=True,
-            end_date__gt=timezone.now()).first()
+            user=request.user, is_active=True, end_date__gt=timezone.now()
+        ).first()
 
         if active_subscription:
             return Response(
                 {
-                    'error':
-                    'Ya tienes una suscripción activa que vence el '
-                    f'{active_subscription.end_date.strftime("%Y-%m-%d")}'
+                    "error": "Ya tienes una suscripción activa que vence el "
+                    f"{active_subscription.end_date.strftime('%Y-%m-%d')}"
                 },
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        request.data['user'] = request.user.id
+        request.data["user"] = request.user.id
         return super().create(request, *args, **kwargs)
 
     def get_queryset(self):

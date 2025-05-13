@@ -2,7 +2,6 @@ from apps.product.repositories.product_repository import ProductRepository
 
 
 class ProductService:
-
     def __init__(self):
         self.repository = ProductRepository()
 

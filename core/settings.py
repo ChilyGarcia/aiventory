@@ -79,20 +79,21 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": ("django.contrib.auth.password_validation."
-                 "UserAttributeSimilarityValidator"),
+        "NAME":
+        ("django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+         ),
     },
     {
-        "NAME": ("django.contrib.auth.password_validation."
-                 "MinimumLengthValidator"),
+        "NAME":
+        ("django.contrib.auth.password_validation.MinimumLengthValidator"),
     },
     {
-        "NAME": ("django.contrib.auth.password_validation."
-                 "CommonPasswordValidator"),
+        "NAME":
+        ("django.contrib.auth.password_validation.CommonPasswordValidator"),
     },
     {
-        "NAME": ("django.contrib.auth.password_validation."
-                 "NumericPasswordValidator"),
+        "NAME":
+        ("django.contrib.auth.password_validation.NumericPasswordValidator"),
     },
 ]
 
@@ -111,18 +112,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "users.CustomUser"
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # Tu frontend Next.js
+    "http://localhost:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
 ]
 
 REST_FRAMEWORK = {
@@ -139,15 +140,15 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer", ),
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # Para desarrollo
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Para producción
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_HOST = 'smtp.gmail.com'
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
@@ -159,21 +160,25 @@ DJOSER = {
     "USER_CREATE_PASSWORD_RETYPE": True,
     "USERNAME_CHANGED_EMAIL_CONFIRMATION": True,
     "PASSWORD_CHANGED_EMAIL_CONFIRMATION": True,
-    "SEND_CONFIRMATION_EMAIL": False,  # Desactivado temporalmente
+    "SEND_CONFIRMATION_EMAIL": False,
     "SET_USERNAME_RETYPE": True,
     "SET_PASSWORD_RETYPE": True,
     "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}",
     "USERNAME_RESET_CONFIRM_URL": "username/reset/confirm/{uid}/{token}",
     "ACTIVATION_URL": "activate/{uid}/{token}",
-    "SEND_ACTIVATION_EMAIL": False,  # Desactivado temporalmente
+    "SEND_ACTIVATION_EMAIL": False,
     "SERIALIZERS": {
-        "user": "apps.users.serializers.CustomUserSerializer",
-        "current_user": "apps.users.serializers.CustomUserSerializer",
-        "user_create": "apps.users.serializers.CustomUserCreateSerializer",
-        "user_create_password_retype": "apps.users.serializers.CustomUserCreateSerializer",
+        "user":
+        "apps.users.serializers.CustomUserSerializer",
+        "current_user":
+        "apps.users.serializers.CustomUserSerializer",
+        "user_create":
+        "apps.users.serializers.CustomUserCreateSerializer",
+        "user_create_password_retype":
+        "apps.users.serializers.CustomUserCreateSerializer",
     },
     "PERMISSIONS": {
         "user_create": ["rest_framework.permissions.AllowAny"],
         "user": ["rest_framework.permissions.IsAuthenticated"],
-    }
+    },
 }

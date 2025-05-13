@@ -1,8 +1,7 @@
-
 from apps.supplier.models import Supplier
 
-class SupplierRepository:
 
+class SupplierRepository:
     @staticmethod
     def get_all():
         return Supplier.objects.all()

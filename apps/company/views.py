@@ -47,29 +47,29 @@ class CompanyViewSet(viewsets.ViewSet):
         try:
             # Obtener o crear el rol de entrepreneur
             entrepreneur_role, _ = Role.objects.get_or_create(name=Role.ENTREPRENEUR)
-            
+
             # Asignar el rol al usuario
             request.user.role = entrepreneur_role
-            
+
             # Asignar todos los permisos necesarios
             permissions = [
-                'create_company',
-                'manage_company_users',
-                'view_companies',
-                'manage_employees',
-                'view_products',
-                'create_product',
-                'edit_product',
-                'delete_product'
+                "create_company",
+                "manage_company_users",
+                "view_companies",
+                "manage_employees",
+                "view_products",
+                "create_product",
+                "edit_product",
+                "delete_product",
             ]
-            
+
             for perm_name in permissions:
                 try:
                     perm = Permission.objects.get(codename=perm_name)
                     request.user.custom_permissions.add(perm)
                 except Permission.DoesNotExist:
                     continue
-            
+
             request.user.save()
 
             serializer = CompanySerializer(data=request.data)

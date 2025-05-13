@@ -2,7 +2,6 @@ from apps.supplier.repositories.supplier_repository import SupplierRepository
 
 
 class SupplierService:
-
     def __init__(self):
         self.repository = SupplierRepository()
 

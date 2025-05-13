@@ -14,7 +14,10 @@ class WompiTransactionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         transaction = serializer.save()
 
-        return Response({
-            'message': 'Pago simulado exitosamente',
-            'transaction': WompiTransactionSerializer(transaction).data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "message": "Pago simulado exitosamente",
+                "transaction": WompiTransactionSerializer(transaction).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

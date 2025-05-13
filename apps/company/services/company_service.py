@@ -36,7 +36,7 @@ class CompanyService:
     def update_employee_permissions(self, email, company, permissions):
         try:
             employee = CustomUser.objects.get(email=email)
-            
+
             # Verificar que el empleado pertenece a la compañía
             if employee.company != company:
                 return "El usuario no pertenece a esta compañía"

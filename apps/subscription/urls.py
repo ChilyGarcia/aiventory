@@ -3,8 +3,8 @@ from django.urls import path, include
 from .views import SubscriptionViewSet
 
 router = DefaultRouter()
-router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
+router.register(r"subscriptions", SubscriptionViewSet, basename="subscription")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

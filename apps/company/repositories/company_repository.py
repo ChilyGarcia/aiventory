@@ -1,3 +1,4 @@
+from django.db import models
 from apps.company.models import Company
 
 
@@ -8,17 +9,12 @@ class CompanyRepository:
 
     @staticmethod
     def get_by_user(user):
-        # Obtener compañías donde el usuario es dueño
-        owned_companies = Company.objects.filter(user=user).all()
-
-        # Obtener la compañía donde el usuario es empleado
+        # Obtener compañías donde el usuario es dueño o empleado
         if user.company:
-            employee_company = [user.company]
-        else:
-            employee_company = []
-
-        # Combinar ambas listas y eliminar duplicados
-        return list(set(list(owned_companies) + employee_company))
+            return Company.objects.filter(
+                models.Q(user=user) | models.Q(id=user.company.id)
+            ).distinct()
+        return Company.objects.filter(user=user)
 
     @staticmethod
     def get_by_id(id):

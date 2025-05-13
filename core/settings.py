@@ -79,21 +79,18 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME":
-        ("django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-         ),
+        "NAME": (
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        ),
     },
     {
-        "NAME":
-        ("django.contrib.auth.password_validation.MinimumLengthValidator"),
+        "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
     },
     {
-        "NAME":
-        ("django.contrib.auth.password_validation.CommonPasswordValidator"),
+        "NAME": ("django.contrib.auth.password_validation.CommonPasswordValidator"),
     },
     {
-        "NAME":
-        ("django.contrib.auth.password_validation.NumericPasswordValidator"),
+        "NAME": ("django.contrib.auth.password_validation.NumericPasswordValidator"),
     },
 ]
 
@@ -106,6 +103,11 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static"
+
+# Media files
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -133,10 +135,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    "DEFAULT_PAGINATION_CLASS":
-    "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE":
-    10,
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
 }
 
 SIMPLE_JWT = {
@@ -144,7 +144,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
-    "AUTH_HEADER_TYPES": ("Bearer", ),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -168,14 +168,10 @@ DJOSER = {
     "ACTIVATION_URL": "activate/{uid}/{token}",
     "SEND_ACTIVATION_EMAIL": False,
     "SERIALIZERS": {
-        "user":
-        "apps.users.serializers.CustomUserSerializer",
-        "current_user":
-        "apps.users.serializers.CustomUserSerializer",
-        "user_create":
-        "apps.users.serializers.CustomUserCreateSerializer",
-        "user_create_password_retype":
-        "apps.users.serializers.CustomUserCreateSerializer",
+        "user": "apps.users.serializers.CustomUserSerializer",
+        "current_user": "apps.users.serializers.CustomUserSerializer",
+        "user_create": "apps.users.serializers.CustomUserCreateSerializer",
+        "user_create_password_retype": "apps.users.serializers.CustomUserCreateSerializer",
     },
     "PERMISSIONS": {
         "user_create": ["rest_framework.permissions.AllowAny"],

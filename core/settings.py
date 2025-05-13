@@ -109,7 +109,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.CustomUser"
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # Tu frontend Next.js
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [

@@ -1,0 +1,32 @@
+[
+    {
+        "model": "plan.plan",
+        "pk": 1,
+        "fields": {
+            "name": "Plan Básico",
+            "price": "29.99",
+            "description": "Plan ideal para pequeños negocios",
+            "features": "- Hasta 100 productos\n- 1 usuario\n- Soporte básico por email\n- Reportes mensuales"
+        }
+    },
+    {
+        "model": "plan.plan",
+        "pk": 2,
+        "fields": {
+            "name": "Plan Profesional",
+            "price": "59.99",
+            "description": "Plan perfecto para negocios medianos",
+            "features": "- Hasta 1000 productos\n- 5 usuarios\n- Soporte prioritario\n- Reportes semanales\n- Exportación de datos"
+        }
+    },
+    {
+        "model": "plan.plan",
+        "pk": 3,
+        "fields": {
+            "name": "Plan Enterprise",
+            "price": "99.99",
+            "description": "Plan completo para grandes empresas",
+            "features": "- Productos ilimitados\n- Usuarios ilimitados\n- Soporte 24/7\n- Reportes en tiempo real\n- API access\n- Backup diario"
+        }
+    }
+]

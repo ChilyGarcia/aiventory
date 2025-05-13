@@ -47,6 +47,8 @@ class Role(models.Model):
 class CustomUser(AbstractUser):
     username = None
     email = models.EmailField('email address', unique=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    document_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True)
     company = models.ForeignKey(
         'company.Company',

@@ -165,5 +165,14 @@ DJOSER = {
     "USERNAME_RESET_CONFIRM_URL": "username/reset/confirm/{uid}/{token}",
     "ACTIVATION_URL": "activate/{uid}/{token}",
     "SEND_ACTIVATION_EMAIL": False,  # Desactivado temporalmente
-    "SERIALIZERS": {},
+    "SERIALIZERS": {
+        "user": "apps.users.serializers.CustomUserSerializer",
+        "current_user": "apps.users.serializers.CustomUserSerializer",
+        "user_create": "apps.users.serializers.CustomUserCreateSerializer",
+        "user_create_password_retype": "apps.users.serializers.CustomUserCreateSerializer",
+    },
+    "PERMISSIONS": {
+        "user_create": ["rest_framework.permissions.AllowAny"],
+        "user": ["rest_framework.permissions.IsAuthenticated"],
+    }
 }

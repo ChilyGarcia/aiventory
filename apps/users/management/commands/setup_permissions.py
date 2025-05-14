@@ -1,7 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.contrib.contenttypes.models import ContentType
-from apps.company.models import Company
-from apps.product.models import Product
 from django.contrib.auth.models import Permission
 from apps.users.models import Role
 
@@ -16,6 +14,9 @@ class Command(BaseCommand):
         )
         product_content_type, _ = ContentType.objects.get_or_create(
             app_label="product", model="product"
+        )
+        sale_content_type, _ = ContentType.objects.get_or_create(
+            app_label="sale", model="sale"
         )
 
         # Crear permisos
@@ -49,6 +50,26 @@ class Command(BaseCommand):
                 "name": "Can create product",
                 "codename": "create_product",
                 "content_type": product_content_type,
+            },
+            {
+                "name": "Can view sales",
+                "codename": "view_sales",
+                "content_type": sale_content_type,
+            },
+            {
+                "name": "Can create sale",
+                "codename": "create_sale",
+                "content_type": sale_content_type,
+            },
+            {
+                "name": "Can edit sale",
+                "codename": "edit_sale",
+                "content_type": sale_content_type,
+            },
+            {
+                "name": "Can delete sale",
+                "codename": "delete_sale",
+                "content_type": sale_content_type,
             },
             {
                 "name": "Can edit product",

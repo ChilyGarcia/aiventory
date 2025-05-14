@@ -3,7 +3,7 @@ from apps.sale.models import Sale
 
 class SaleRepository:
     @staticmethod
-    def create_sale(sale_data):
+    def create(sale_data):
         return Sale.objects.create(**sale_data)
 
     @staticmethod
@@ -21,4 +21,6 @@ class SaleRepository:
 
     @staticmethod
     def delete(id):
-        return Sale.objects.delete(id=id)
+        sale = Sale.objects.get(id=id)
+        sale.delete()
+        return True

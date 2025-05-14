@@ -18,6 +18,9 @@ class Command(BaseCommand):
         sale_content_type, _ = ContentType.objects.get_or_create(
             app_label="sale", model="sale"
         )
+        purchase_content_type, _ = ContentType.objects.get_or_create(
+            app_label="purchase", model="purchase"
+        )
 
         # Crear permisos
         permissions_data = [
@@ -70,6 +73,26 @@ class Command(BaseCommand):
                 "name": "Can delete sale",
                 "codename": "delete_sale",
                 "content_type": sale_content_type,
+            },
+            {
+                "name": "Can view purchases",
+                "codename": "view_purchases",
+                "content_type": purchase_content_type,
+            },
+            {
+                "name": "Can create purchase",
+                "codename": "create_purchase",
+                "content_type": purchase_content_type,
+            },
+            {
+                "name": "Can edit purchase",
+                "codename": "edit_purchase",
+                "content_type": purchase_content_type,
+            },
+            {
+                "name": "Can delete purchase",
+                "codename": "delete_purchase",
+                "content_type": purchase_content_type,
             },
             {
                 "name": "Can edit product",

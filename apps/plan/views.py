@@ -8,5 +8,5 @@ class PlanViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
     permission_classes = [AllowAny]
-    queryset = Plan.objects.all()
+    queryset = Plan.objects.all().order_by('id')
     serializer_class = PlanSerializer

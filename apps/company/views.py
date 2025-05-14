@@ -22,14 +22,13 @@ class CompanyViewSet(viewsets.ViewSet):
         try:
             companies = self.service.get_all_by_user(request.user)
             serializer = CompanySerializer(
-                companies,
-                many=True,
-                context={'request': request}
+                companies, many=True, context={"request": request}
             )
             return Response(serializer.data)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def retrieve(self, request, pk=None):
         try:
@@ -42,32 +41,28 @@ class CompanyViewSet(viewsets.ViewSet):
 
             if company.user != request.user:
                 msg = "No tienes permiso para ver esta compañía"
-                return Response({"error": msg},
-                                status=status.HTTP_403_FORBIDDEN)
-            serializer = CompanySerializer(company, context={'request': request})
+                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
+            serializer = CompanySerializer(company, context={"request": request})
             return Response(serializer.data)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     def create(self, request):
         try:
             active_subscription = Subscription.objects.filter(
-                user=request.user, is_active=True,
-                end_date__gt=timezone.now()).first()
+                user=request.user, is_active=True, end_date__gt=timezone.now()
+            ).first()
 
             if not active_subscription:
                 return Response(
                     {
-                        "error":
-                        "Necesitas una suscripción activa para crear una compañía. "
+                        "error": "Necesitas una suscripción activa para crear una compañía. "
                         "Por favor, adquiere un plan."
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            entrepreneur_role, _ = Role.objects.get_or_create(
-                name=Role.ENTREPRENEUR)
+            entrepreneur_role, _ = Role.objects.get_or_create(name=Role.ENTREPRENEUR)
 
             request.user.role = entrepreneur_role
 
@@ -91,32 +86,28 @@ class CompanyViewSet(viewsets.ViewSet):
 
             request.user.save()
 
-            existing_company = self.service.get_all_by_user(
-                request.user).first()
+            existing_company = self.service.get_all_by_user(request.user).first()
             if existing_company:
                 return Response(
                     {
-                        "error":
-                        "Ya tienes una compañía registrada. "
+                        "error": "Ya tienes una compañía registrada. "
                         "Tu plan actual no permite crear más compañías."
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
             serializer = CompanySerializer(
-                data=request.data,
-                context={'request': request}
+                data=request.data, context={"request": request}
             )
             if serializer.is_valid():
                 company = serializer.save()
                 self.service.assign_owner(request.user, company)
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @custom_permission_required("manage_company_users")
     @action(detail=True, methods=["post"])
@@ -126,8 +117,7 @@ class CompanyViewSet(viewsets.ViewSet):
 
             if company.user != request.user:
                 msg = "Solo el dueño puede agregar empleados"
-                return Response({"error": msg},
-                                status=status.HTTP_403_FORBIDDEN)
+                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
 
             email = request.data.get("email")
             password = request.data.get("password")
@@ -140,18 +130,18 @@ class CompanyViewSet(viewsets.ViewSet):
 
             employee_role = Role.objects.get(name=Role.EMPLOYEE)
 
-            new_employee = CustomUser.objects.create_user(email=email,
-                                                          password=password,
-                                                          role=employee_role,
-                                                          company=company)
+            new_employee = CustomUser.objects.create_user(
+                email=email, password=password, role=employee_role, company=company
+            )
 
             perm = Permission.objects.get(codename="view_products")
             new_employee.custom_permissions.add(perm)
 
             return Response({"message": "Empleado creado exitosamente"})
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @custom_permission_required("manage_company_users")
     @action(detail=True, methods=["post"])
@@ -166,8 +156,7 @@ class CompanyViewSet(viewsets.ViewSet):
 
             if not self.service.is_user_owner(request.user, company):
                 msg = "No tienes permiso para actualizar permisos"
-                return Response({"error": msg},
-                                status=status.HTTP_403_FORBIDDEN)
+                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
 
             email = request.data.get("email")
             permissions = request.data.get("permissions", [])
@@ -178,14 +167,15 @@ class CompanyViewSet(viewsets.ViewSet):
                 )
 
             result = self.service.update_employee_permissions(
-                email, company, permissions)
+                email, company, permissions
+            )
             if isinstance(result, str):
-                return Response({"error": result},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": result}, status=status.HTTP_400_BAD_REQUEST)
             return Response({"message": "Permisos actualizados exitosamente"})
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def update(self, request, pk=None):
         try:
@@ -198,22 +188,17 @@ class CompanyViewSet(viewsets.ViewSet):
 
             if not self.service.is_user_owner(request.user, company):
                 msg = "No tienes permiso para actualizar"
-                return Response({"error": msg},
-                                status=status.HTTP_403_FORBIDDEN)
+                return Response({"error": msg}, status=status.HTTP_403_FORBIDDEN)
 
             serializer = CompanySerializer(
-                company,
-                data=request.data,
-                context={'request': request}
+                company, data=request.data, context={"request": request}
             )
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     def destroy(self, request, pk=None):
         try:
@@ -234,5 +219,4 @@ class CompanyViewSet(viewsets.ViewSet):
             self.service.delete(pk)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

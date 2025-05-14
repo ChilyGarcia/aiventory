@@ -5,8 +5,11 @@ from apps.company.services.company_service import CompanyService
 from apps.users.decorators import custom_permission_required
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
+from django.db.models import Sum, Avg
 from apps.sale.serializers import SaleSerializer
 from apps.product.models import Product
+from apps.sale.models import Sale
 
 
 class SalesViewSet(viewsets.ViewSet):
@@ -148,6 +151,36 @@ class SalesViewSet(viewsets.ViewSet):
                 )
             self.service.delete(pk)
             return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+            
+    @action(detail=False, methods=['get'])
+    @custom_permission_required("view_sales")
+    def statistics(self, request):
+        try:
+            companies = self.company_service.get_all_by_user(request.user)
+            if not companies:
+                return Response(
+                    {"error": "El usuario no tiene compañías asignadas"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            # Filtramos las ventas por la(s) compañía(s) del usuario
+            sales = Sale.objects.filter(company__in=companies)
+            
+            # Calculamos el total de ventas en dinero
+            total_sales = sales.aggregate(total=Sum('total_price'))
+            
+            # Calculamos el promedio de dinero por venta
+            average_sale = sales.aggregate(average=Avg('total_price'))
+            
+            return Response({
+                'total_sales': total_sales['total'] or 0,
+                'average_sale': average_sale['average'] or 0,
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {"error": str(e)},

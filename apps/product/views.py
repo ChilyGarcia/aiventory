@@ -7,6 +7,11 @@ from apps.company.services.company_service import CompanyService
 from apps.users.decorators import custom_permission_required
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Sum
+from django.db.models.functions import ExtractMonth
+from apps.sale.models import Sale
+from apps.purchase.models import Purchase
+from datetime import datetime
 
 
 class ProductViewSet(viewsets.ViewSet):
@@ -199,6 +204,75 @@ class ProductViewSet(viewsets.ViewSet):
                 stats["out_of_stock"] += out_of_stock
 
             return Response(stats)
+        except Exception as e:
+            return Response({"error": str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["get"], url_path="monthly-flow")
+    @custom_permission_required("view_products")
+    def monthly_inventory_flow(self, request):
+        try:
+            companies = self.company_service.get_all_by_user(request.user)
+            if not companies:
+                return Response(
+                    {"error": "El usuario no tiene compañías asignadas"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            # Año para el que queremos obtener los datos (por defecto el año actual)
+            year = request.query_params.get('year', datetime.now().year)
+            try:
+                year = int(year)
+            except ValueError:
+                year = datetime.now().year
+            
+            # Diccionario para almacenar los datos de cada mes
+            monthly_data = []
+            
+            # Nombres abreviados de los meses en español
+            month_names = {
+                1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+                7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic"
+            }
+            
+            # Obtener las ventas y compras del año especificado para las compañías del usuario
+            sales = Sale.objects.filter(
+                company__in=companies,
+                date__year=year
+            )
+            
+            purchases = Purchase.objects.filter(
+                company__in=companies,
+                date__year=year
+            )
+            
+            # Datos mensuales de ventas (unidades salientes)
+            sales_by_month = sales.annotate(
+                month=ExtractMonth('date')
+            ).values('month').annotate(
+                total_units=Sum('quantity')  # Suma de las cantidades vendidas
+            ).order_by('month')
+            
+            # Datos mensuales de compras (unidades entrantes)
+            purchases_by_month = purchases.annotate(
+                month=ExtractMonth('date')
+            ).values('month').annotate(
+                total_units=Sum('quantity')  # Suma de las cantidades compradas
+            ).order_by('month')
+            
+            # Convertir QuerySets en diccionarios para facilitar el acceso
+            sales_dict = {item['month']: item['total_units'] or 0 for item in sales_by_month}
+            purchases_dict = {item['month']: item['total_units'] or 0 for item in purchases_by_month}
+            
+            # Generar el resultado final con datos para todos los meses
+            for month in range(1, 13):
+                monthly_data.append({
+                    "name": month_names[month],
+                    "entradas": purchases_dict.get(month, 0),
+                    "salidas": sales_dict.get(month, 0)
+                })
+            
+            return Response(monthly_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -192,7 +192,7 @@ class SalesViewSet(viewsets.ViewSet):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            
+
     @action(detail=False, methods=["get"], url_path="top-products")
     @custom_permission_required("view_sales")
     def top_products(self, request):
@@ -203,7 +203,7 @@ class SalesViewSet(viewsets.ViewSet):
                     {"error": "El usuario no tiene compañías asignadas"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-                
+
             # Obtener límite de resultados (por defecto 10)
             limit = request.query_params.get("limit", 10)
             try:
@@ -212,51 +212,52 @@ class SalesViewSet(viewsets.ViewSet):
                     limit = 10
             except ValueError:
                 limit = 10
-                
+
             # Filtrar por periodo (opcional)
             period = request.query_params.get("period", None)
             sales_query = Sale.objects.filter(company__in=companies)
-            
+
             if period == "month":
                 # Último mes
                 from datetime import datetime, timedelta
+
                 last_month = datetime.now() - timedelta(days=30)
                 sales_query = sales_query.filter(date__gte=last_month)
             elif period == "year":
                 # Último año
                 from datetime import datetime, timedelta
+
                 last_year = datetime.now() - timedelta(days=365)
                 sales_query = sales_query.filter(date__gte=last_year)
-                
+
             # Agrupar ventas por producto y sumar cantidades
             # Utilizamos annotate y Sum para agrupar por producto y calcular totales
             from django.db.models import Count, F
+
             top_products = (
-                sales_query.values(
-                    'product',
-                    'product__name', 
-                    'product__price'
-                )
+                sales_query.values("product", "product__name", "product__price")
                 .annotate(
-                    total_quantity=Sum('quantity'),
-                    total_sales=Sum('total_price'),
-                    count=Count('id')
+                    total_quantity=Sum("quantity"),
+                    total_sales=Sum("total_price"),
+                    count=Count("id"),
                 )
-                .order_by('-total_quantity')[:limit]
+                .order_by("-total_quantity")[:limit]
             )
-            
+
             # Preparamos los datos para la visualización
             result = []
             for item in top_products:
-                result.append({
-                    "id": item["product"],
-                    "name": item["product__name"],
-                    "quantity_sold": item["total_quantity"],
-                    "total_sales": float(item["total_sales"]),
-                    "unit_price": float(item["product__price"]),
-                    "transactions": item["count"]
-                })
-                
+                result.append(
+                    {
+                        "id": item["product"],
+                        "name": item["product__name"],
+                        "quantity_sold": item["total_quantity"],
+                        "total_sales": float(item["total_sales"]),
+                        "unit_price": float(item["product__price"]),
+                        "transactions": item["count"],
+                    }
+                )
+
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(

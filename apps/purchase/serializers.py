@@ -7,6 +7,6 @@ class PurchaseSerializer(serializers.ModelSerializer):
         model = Purchase
         fields = "__all__"
         extra_kwargs = {
-            'company': {'required': False},
-            'total_cost': {'required': False}
+            "company": {"required": False},
+            "total_cost": {"required": False},
         }

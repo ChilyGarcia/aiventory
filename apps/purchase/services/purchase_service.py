@@ -5,6 +5,9 @@ class PurchaseService:
     def get_all(self):
         return Purchase.objects.all()
 
+    def get_all_by_company(self, companies):
+        return Purchase.objects.filter(company__in=companies)
+
     def get_by_id(self, purchase_id):
         try:
             return Purchase.objects.get(id=purchase_id)

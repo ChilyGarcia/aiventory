@@ -5,6 +5,9 @@ class SaleService:
     def __init__(self):
         self.repository = SaleRepository()
 
+    def get_all_by_company(self, companies):
+        return self.repository.get_all_by_company(companies)
+
     def get_all(self):
         return self.repository.get_all()
 

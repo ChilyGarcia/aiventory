@@ -24,3 +24,7 @@ class SaleRepository:
         sale = Sale.objects.get(id=id)
         sale.delete()
         return True
+
+    @staticmethod
+    def get_all_by_company(companies):
+        return Sale.objects.filter(company__in=companies)

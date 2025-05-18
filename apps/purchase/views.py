@@ -29,7 +29,7 @@ class PurchasesViewSet(viewsets.ViewSet):
                     {"error": "El usuario no tiene compañías asignadas"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            purchases = self.service.get_all()
+            purchases = self.service.get_all_by_company(companies)
             return Response(
                 PurchaseSerializer(purchases, many=True).data,
                 status=status.HTTP_200_OK,

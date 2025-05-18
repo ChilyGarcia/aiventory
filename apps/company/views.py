@@ -96,9 +96,14 @@ class CompanyViewSet(viewsets.ViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            serializer = CompanySerializer(
-                data=request.data, context={"request": request}
+            # Remove 'id' from request data if it exists to avoid PK constraint errors
+            data = (
+                request.data.copy() if hasattr(request.data, "copy") else request.data
             )
+            if "id" in data:
+                data.pop("id")
+
+            serializer = CompanySerializer(data=data, context={"request": request})
             if serializer.is_valid():
                 company = serializer.save()
                 self.service.assign_owner(request.user, company)

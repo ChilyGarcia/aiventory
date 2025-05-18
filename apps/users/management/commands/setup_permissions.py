@@ -98,26 +98,6 @@ class Command(BaseCommand):
                 "content_type": purchase_content_type,
             },
             {
-                "name": "Can view suppliers",
-                "codename": "view_supplier",
-                "content_type": supplier_content_type,
-            },
-            {
-                "name": "Can add supplier",
-                "codename": "add_supplier",
-                "content_type": supplier_content_type,
-            },
-            {
-                "name": "Can change supplier",
-                "codename": "change_supplier",
-                "content_type": supplier_content_type,
-            },
-            {
-                "name": "Can delete supplier",
-                "codename": "delete_supplier",
-                "content_type": supplier_content_type,
-            },
-            {
                 "name": "Can edit product",
                 "codename": "edit_product",
                 "content_type": product_content_type,
@@ -129,14 +109,63 @@ class Command(BaseCommand):
             },
         ]
 
+        # Filter out permissions that might already exist automatically
+        # (Django's default view_, add_, change_, delete_ permissions)
+        django_default_patterns = ['view_', 'add_', 'change_', 'delete_']
+
+        # Remove supplier permissions from original list - we'll fetch them instead
+        permissions_data = [
+            perm_data for perm_data in permissions_data
+            if perm_data['content_type'] != supplier_content_type
+        ]
+
         created_permissions = []
+
+        # First, try to get or create the non-supplier permissions
         for perm_data in permissions_data:
-            permission, _ = Permission.objects.get_or_create(
-                name=perm_data["name"],
-                codename=perm_data["codename"],
-                content_type=perm_data["content_type"],
-            )
-            created_permissions.append(permission)
+            # Skip creation if this matches Django's default pattern naming
+            codename = perm_data['codename']
+            skip_creation = False
+
+            for pattern in django_default_patterns:
+                if codename.startswith(pattern):
+                    # Try to get permission instead of creating it
+                    try:
+                        permission = Permission.objects.get(
+                            codename=codename,
+                            content_type=perm_data['content_type']
+                        )
+                        created_permissions.append(permission)
+                        skip_creation = True
+                        break
+                    except Permission.DoesNotExist:
+                        # If it doesn't exist, we'll create it below
+                        pass
+
+            if not skip_creation:
+                permission, _ = Permission.objects.get_or_create(
+                    codename=codename,
+                    content_type=perm_data['content_type'],
+                    defaults={'name': perm_data['name']}
+                )
+                created_permissions.append(permission)
+
+        # Now handle supplier permissions - get Django's default ones
+        supplier_perms = ['view_supplier', 'add_supplier', 
+                         'change_supplier', 'delete_supplier']
+        for perm_name in supplier_perms:
+            try:
+                permission = Permission.objects.get(
+                    codename=perm_name,
+                    content_type=supplier_content_type
+                )
+                created_permissions.append(permission)
+            except Permission.DoesNotExist:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Permission {perm_name} not found for supplier model"
+                    )
+                )
 
         # Crear roles
         entrepreneur_role, _ = Role.objects.get_or_create(name="entrepreneur")

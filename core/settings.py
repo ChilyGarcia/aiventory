@@ -180,3 +180,56 @@ DJOSER = {
         "user": ["rest_framework.permissions.IsAuthenticated"],
     },
 }
+
+# Configuración de logging para depuración del sistema de predicción
+
+# Para activar/desactivar logging detallado:
+# - Cambiar DEBUG_LOGS = True   # Activa logs detallados (SQL, etc)
+# - Cambiar DEBUG_LOGS = False  # Solo muestra mensajes importantes
+
+DEBUG_LOGS = False  # Cambia a True cuando necesites logs detallados
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'debug.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'apps.sale.prediction': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
+        }
+    },
+}

@@ -11,7 +11,7 @@ class Sale(models.Model):
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField()
     sold_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
 
     def save(self, *args, **kwargs):

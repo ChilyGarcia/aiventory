@@ -14,6 +14,13 @@ from apps.sale.models import Sale
 from apps.purchase.models import Purchase
 from datetime import datetime
 
+# Importaciones para el modelo de predicción
+from apps.sale.prediction.sales_predictor import SalesPredictor
+from apps.sale.prediction.serializers import (
+    SalesPredictionSerializer,
+    SalesPredictionResultSerializer,
+)
+
 
 class SalesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -187,6 +194,125 @@ class SalesViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_200_OK,
             )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["post"], url_path="train-model")
+    @custom_permission_required("view_sales")
+    def train_sales_model(self, request):
+        """
+        Endpoint para entrenar el modelo de predicción de ventas separado de la predicción.
+        """
+        try:
+            companies = self.company_service.get_all_by_user(request.user)
+            if not companies:
+                return Response(
+                    {"error": "El usuario no tiene compañías asignadas"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Validar los datos de entrada
+            serializer = SalesPredictionSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Obtener parámetros de la solicitud
+            product_id = serializer.validated_data.get("product_id")
+            days_history = serializer.validated_data.get("days_history", 90)
+            time_unit = serializer.validated_data.get("time_unit", "day")
+
+            # Si se especifica un producto, verificar que pertenezca a la compañía del usuario
+            if product_id:
+                product = Product.objects.filter(
+                    id=product_id, company__in=companies
+                ).first()
+                if not product:
+                    return Response(
+                        {"error": "El producto no existe o no pertenece a tu compañía"},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+            # Inicializar el predictor de ventas
+            predictor = SalesPredictor(companies[0])  # Usamos la primera compañía del usuario
+            
+            # Entrenar el modelo
+            success = predictor.train_model(
+                product_id=product_id,
+                days_back=days_history,
+                time_unit=time_unit
+            )
+            
+            if not success:
+                return Response(
+                    {"error": "No hay suficientes datos históricos para entrenar el modelo"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
+            # Guardar el modelo entrenado
+            predictor.save_model(product_id, time_unit)
+            
+            return Response(
+                {"message": "Modelo entrenado y guardado exitosamente"},
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["post"], url_path="predict")
+    @custom_permission_required("view_sales")
+    def predict_sales(self, request):
+        """
+        Endpoint para predecir las ventas futuras basado en datos históricos.
+        """
+        try:
+            companies = self.company_service.get_all_by_user(request.user)
+            if not companies:
+                return Response(
+                    {"error": "El usuario no tiene compañías asignadas"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Validar los datos de entrada
+            serializer = SalesPredictionSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Obtener parámetros de la solicitud
+            product_id = serializer.validated_data.get("product_id")
+            days_ahead = serializer.validated_data.get("days_ahead", 30)
+            time_unit = serializer.validated_data.get("time_unit", "day")
+            days_history = serializer.validated_data.get("days_history", 90)
+
+            # Si se especifica un producto, verificar que pertenezca a la compañía del usuario
+            if product_id:
+                product = Product.objects.filter(
+                    id=product_id, company__in=companies
+                ).first()
+                if not product:
+                    return Response(
+                        {"error": "El producto no existe o no pertenece a tu compañía"},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+            # Inicializar y usar el predictor de ventas
+            predictor = SalesPredictor(
+                companies[0]
+            )  # Usamos la primera compañía del usuario
+            predictions = predictor.predict_future_sales(
+                product_id=product_id, days_ahead=days_ahead, time_unit=time_unit
+            )
+
+            # Serializar y retornar los resultados
+            result_serializer = SalesPredictionResultSerializer(predictions, many=True)
+            return Response(result_serializer.data, status=status.HTTP_200_OK)
+
         except Exception as e:
             return Response(
                 {"error": str(e)},

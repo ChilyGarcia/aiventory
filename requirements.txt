@@ -8,3 +8,8 @@ django-templated-mail==1.1.1
 Pillow==10.1.0
 django-filter==23.5
 markdown==3.5.1
+
+# Dependencias para el modelo de predicción de ventas
+scikit-learn==1.4.0
+pandas==2.2.0
+numpy==1.26.3

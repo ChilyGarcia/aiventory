@@ -14,7 +14,6 @@ from apps.sale.models import Sale
 from apps.purchase.models import Purchase
 from datetime import datetime
 
-# Importaciones para el modelo de predicción
 from apps.sale.prediction.sales_predictor import SalesPredictor
 from apps.sale.prediction.serializers import (
     SalesPredictionSerializer,
@@ -90,18 +89,26 @@ class SalesViewSet(viewsets.ViewSet):
             company = companies[0]
 
             product_id = request.data.get("product")
-            product = Product.objects.filter(id=product_id, company=company).first()
+            product = Product.objects.filter(id=product_id,
+                                             company=company).first()
             if not product:
                 return Response(
-                    {"error": "El producto no existe o no pertenece a tu compañía"},
+                    {
+                        "error":
+                        "El producto no existe o no pertenece a tu compañía"
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
+            from django.utils import timezone
+            
             serializer = SaleSerializer(data=request.data)
             if serializer.is_valid():
-                sale = serializer.save(company=company, sold_by=request.user)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                sale = serializer.save(company=company, sold_by=request.user, date=timezone.now())
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)},
@@ -132,7 +139,8 @@ class SalesViewSet(viewsets.ViewSet):
             if serializer.is_valid():
                 updated_sale = serializer.save(company=sale.company)
                 return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)},
@@ -178,13 +186,10 @@ class SalesViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Filtramos las ventas por la(s) compañía(s) del usuario
             sales = Sale.objects.filter(company__in=companies)
 
-            # Calculamos el total de ventas en dinero
             total_sales = sales.aggregate(total=Sum("total_price"))
 
-            # Calculamos el promedio de dinero por venta
             average_sale = sales.aggregate(average=Avg("total_price"))
 
             return Response(
@@ -203,9 +208,6 @@ class SalesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="train-model")
     @custom_permission_required("view_sales")
     def train_sales_model(self, request):
-        """
-        Endpoint para entrenar el modelo de predicción de ventas separado de la predicción.
-        """
         try:
             companies = self.company_service.get_all_by_user(request.user)
             if not companies:
@@ -214,50 +216,48 @@ class SalesViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Validar los datos de entrada
             serializer = SalesPredictionSerializer(data=request.data)
             if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
 
-            # Obtener parámetros de la solicitud
             product_id = serializer.validated_data.get("product_id")
             days_history = serializer.validated_data.get("days_history", 90)
             time_unit = serializer.validated_data.get("time_unit", "day")
 
-            # Si se especifica un producto, verificar que pertenezca a la compañía del usuario
             if product_id:
                 product = Product.objects.filter(
-                    id=product_id, company__in=companies
-                ).first()
+                    id=product_id, company__in=companies).first()
                 if not product:
                     return Response(
-                        {"error": "El producto no existe o no pertenece a tu compañía"},
+                        {
+                            "error":
+                            "El producto no existe o no pertenece a tu compañía"
+                        },
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
-            # Inicializar el predictor de ventas
-            predictor = SalesPredictor(companies[0])  # Usamos la primera compañía del usuario
-            
-            # Entrenar el modelo
-            success = predictor.train_model(
-                product_id=product_id,
-                days_back=days_history,
-                time_unit=time_unit
-            )
-            
+            predictor = SalesPredictor(companies[0])
+
+            success = predictor.train_model(product_id=product_id,
+                                            days_back=days_history,
+                                            time_unit=time_unit)
+
             if not success:
                 return Response(
-                    {"error": "No hay suficientes datos históricos para entrenar el modelo"},
+                    {
+                        "error":
+                        "No hay suficientes datos históricos para entrenar el modelo"
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-                
+
             # Guardar el modelo entrenado
             predictor.save_model(product_id, time_unit)
-            
+
             return Response(
                 {"message": "Modelo entrenado y guardado exitosamente"},
-                status=status.HTTP_200_OK
-            )
+                status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
@@ -268,9 +268,6 @@ class SalesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="predict")
     @custom_permission_required("view_sales")
     def predict_sales(self, request):
-        """
-        Endpoint para predecir las ventas futuras basado en datos históricos.
-        """
         try:
             companies = self.company_service.get_all_by_user(request.user)
             if not companies:
@@ -279,38 +276,35 @@ class SalesViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Validar los datos de entrada
             serializer = SalesPredictionSerializer(data=request.data)
             if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
 
-            # Obtener parámetros de la solicitud
             product_id = serializer.validated_data.get("product_id")
             days_ahead = serializer.validated_data.get("days_ahead", 30)
             time_unit = serializer.validated_data.get("time_unit", "day")
             days_history = serializer.validated_data.get("days_history", 90)
 
-            # Si se especifica un producto, verificar que pertenezca a la compañía del usuario
             if product_id:
                 product = Product.objects.filter(
-                    id=product_id, company__in=companies
-                ).first()
+                    id=product_id, company__in=companies).first()
                 if not product:
                     return Response(
-                        {"error": "El producto no existe o no pertenece a tu compañía"},
+                        {
+                            "error":
+                            "El producto no existe o no pertenece a tu compañía"
+                        },
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
-            # Inicializar y usar el predictor de ventas
-            predictor = SalesPredictor(
-                companies[0]
-            )  # Usamos la primera compañía del usuario
-            predictions = predictor.predict_future_sales(
-                product_id=product_id, days_ahead=days_ahead, time_unit=time_unit
-            )
+            predictor = SalesPredictor(companies[0])
+            predictions = predictor.predict_future_sales(product_id=product_id,
+                                                         days_ahead=days_ahead,
+                                                         time_unit=time_unit)
 
-            # Serializar y retornar los resultados
-            result_serializer = SalesPredictionResultSerializer(predictions, many=True)
+            result_serializer = SalesPredictionResultSerializer(predictions,
+                                                                many=True)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -330,7 +324,6 @@ class SalesViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Obtener límite de resultados (por defecto 10)
             limit = request.query_params.get("limit", 10)
             try:
                 limit = int(limit)
@@ -339,50 +332,39 @@ class SalesViewSet(viewsets.ViewSet):
             except ValueError:
                 limit = 10
 
-            # Filtrar por periodo (opcional)
             period = request.query_params.get("period", None)
             sales_query = Sale.objects.filter(company__in=companies)
 
             if period == "month":
-                # Último mes
                 from datetime import datetime, timedelta
 
                 last_month = datetime.now() - timedelta(days=30)
                 sales_query = sales_query.filter(date__gte=last_month)
             elif period == "year":
-                # Último año
                 from datetime import datetime, timedelta
 
                 last_year = datetime.now() - timedelta(days=365)
                 sales_query = sales_query.filter(date__gte=last_year)
 
-            # Agrupar ventas por producto y sumar cantidades
-            # Utilizamos annotate y Sum para agrupar por producto y calcular totales
             from django.db.models import Count, F
 
-            top_products = (
-                sales_query.values("product", "product__name", "product__price")
-                .annotate(
+            top_products = (sales_query.values(
+                "product", "product__name", "product__price").annotate(
                     total_quantity=Sum("quantity"),
                     total_sales=Sum("total_price"),
                     count=Count("id"),
-                )
-                .order_by("-total_quantity")[:limit]
-            )
+                ).order_by("-total_quantity")[:limit])
 
-            # Preparamos los datos para la visualización
             result = []
             for item in top_products:
-                result.append(
-                    {
-                        "id": item["product"],
-                        "name": item["product__name"],
-                        "quantity_sold": item["total_quantity"],
-                        "total_sales": float(item["total_sales"]),
-                        "unit_price": float(item["product__price"]),
-                        "transactions": item["count"],
-                    }
-                )
+                result.append({
+                    "id": item["product"],
+                    "name": item["product__name"],
+                    "quantity_sold": item["total_quantity"],
+                    "total_sales": float(item["total_sales"]),
+                    "unit_price": float(item["product__price"]),
+                    "transactions": item["count"],
+                })
 
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
@@ -402,17 +384,14 @@ class SalesViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Año para el que queremos obtener los datos (por defecto el año actual)
             year = request.query_params.get("year", datetime.now().year)
             try:
                 year = int(year)
             except ValueError:
                 year = datetime.now().year
 
-            # Diccionario para almacenar los datos de cada mes
             monthly_data = []
 
-            # Nombres abreviados de los meses en español
             month_names = {
                 1: "Ene",
                 2: "Feb",
@@ -428,44 +407,34 @@ class SalesViewSet(viewsets.ViewSet):
                 12: "Dic",
             }
 
-            # Obtener las ventas y compras del año especificado
             sales = Sale.objects.filter(company__in=companies, date__year=year)
 
-            purchases = Purchase.objects.filter(company__in=companies, date__year=year)
+            purchases = Purchase.objects.filter(company__in=companies,
+                                                date__year=year)
 
-            # Datos mensuales de ventas
-            sales_by_month = (
-                sales.annotate(month=ExtractMonth("date"))
-                .values("month")
-                .annotate(total=Sum("total_price"))
-                .order_by("month")
-            )
+            sales_by_month = (sales.annotate(
+                month=ExtractMonth("date")).values("month").annotate(
+                    total=Sum("total_price")).order_by("month"))
 
-            # Datos mensuales de compras
-            purchases_by_month = (
-                purchases.annotate(month=ExtractMonth("date"))
-                .values("month")
-                .annotate(total=Sum("total_cost"))
-                .order_by("month")
-            )
+            purchases_by_month = (purchases.annotate(
+                month=ExtractMonth("date")).values("month").annotate(
+                    total=Sum("total_cost")).order_by("month"))
 
-            # Convertir QuerySets en diccionarios para facilitar el acceso
             sales_dict = {
-                item["month"]: float(item["total"]) for item in sales_by_month
+                item["month"]: float(item["total"])
+                for item in sales_by_month
             }
             purchases_dict = {
-                item["month"]: float(item["total"]) for item in purchases_by_month
+                item["month"]: float(item["total"])
+                for item in purchases_by_month
             }
 
-            # Generar el resultado final con datos para todos los meses
             for month in range(1, 13):
-                monthly_data.append(
-                    {
-                        "name": month_names[month],
-                        "entradas": purchases_dict.get(month, 0),
-                        "salidas": sales_dict.get(month, 0),
-                    }
-                )
+                monthly_data.append({
+                    "name": month_names[month],
+                    "entradas": purchases_dict.get(month, 0),
+                    "salidas": sales_dict.get(month, 0),
+                })
 
             return Response(monthly_data, status=status.HTTP_200_OK)
         except Exception as e:

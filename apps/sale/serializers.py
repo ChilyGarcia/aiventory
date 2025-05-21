@@ -7,7 +7,7 @@ class SaleSerializer(serializers.ModelSerializer):
         model = Sale
         fields = "__all__"
         extra_kwargs = {
-            "company": {"required": False}, 
+            "company": {"required": False},
             "sold_by": {"required": False},
-            "date": {"required": False}
+            "date": {"required": False},
         }

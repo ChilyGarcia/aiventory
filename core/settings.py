@@ -190,46 +190,46 @@ DJOSER = {
 DEBUG_LOGS = False  # Cambia a True cuando necesites logs detallados
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'debug.log'),
-            'formatter': 'verbose',
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
+    "handlers": {
+        "console": {
+            "level": "DEBUG" if DEBUG_LOGS else "WARNING",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
-        'apps.sale.prediction': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
-            'propagate': False,
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "debug.log"),
+            "formatter": "verbose",
         },
-        'django.db.backends': {
-            'level': 'DEBUG' if DEBUG_LOGS else 'WARNING',
-            'handlers': ['console'],
-            'propagate': False,
-        }
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "apps.sale.prediction": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG" if DEBUG_LOGS else "WARNING",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "level": "DEBUG" if DEBUG_LOGS else "WARNING",
+            "handlers": ["console"],
+            "propagate": False,
+        },
     },
 }

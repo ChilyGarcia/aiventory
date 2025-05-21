@@ -13,6 +13,12 @@ from apps.sale.models import Sale
 from apps.purchase.models import Purchase
 from datetime import datetime
 from itertools import chain
+import pandas as pd
+import io
+import csv
+from django.db import transaction
+from rest_framework.parsers import MultiPartParser, FormParser
+from apps.product.models import Product
 
 
 class ProductViewSet(viewsets.ViewSet):
@@ -34,7 +40,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Obtener límite (por defecto 5)
             limit = request.query_params.get("limit", 5)
             try:
                 limit = int(limit)
@@ -43,26 +48,21 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 limit = 5
 
-            # Consultar ventas recientes
             sales = (
                 Sale.objects.filter(company__in=companies)
                 .select_related("product")
                 .order_by("-date")[:limit]
             )
 
-            # Consultar compras recientes
             purchases = (
                 Purchase.objects.filter(company__in=companies)
                 .select_related("product")
                 .order_by("-date")[:limit]
             )
 
-            # Combinar y ordenar ambos conjuntos
             combined_movements = list(chain(sales, purchases))
             combined_movements.sort(key=lambda x: x.date, reverse=True)
             combined_movements = combined_movements[:limit]
-
-            # Formatear los resultados
             result = []
             for item in combined_movements:
                 movement_type = "Venta" if isinstance(item, Sale) else "Compra"
@@ -77,16 +77,20 @@ class ProductViewSet(viewsets.ViewSet):
                             "date": item.date.strftime("%Y-%m-%d %H:%M:%S"),
                             "amount": float(item.total_price),
                             "unit_value": float(item.unit_price),
-                            "person": item.customer
-                            if movement_type == "Venta"
-                            else item.supplier,
+                            "person": (
+                                item.customer
+                                if movement_type == "Venta"
+                                else item.supplier
+                            ),
                             "stock_change": -item.quantity,
-                            "sold_by": item.sold_by.get_full_name()
-                            if item.sold_by
-                            else "Usuario eliminado",
+                            "sold_by": (
+                                item.sold_by.get_full_name()
+                                if item.sold_by
+                                else "Usuario eliminado"
+                            ),
                         }
                     )
-                else:  # Compra
+                else:
                     result.append(
                         {
                             "id": item.id,
@@ -118,7 +122,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Obtener productos de todas las compañías del usuario
             all_products = []
             for company in companies:
                 products = self.service.get_all_by_company(company)
@@ -229,7 +232,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Verificar que el producto pertenece a una de las compañías del usuario
             if product.company not in companies:
                 return Response(
                     {"error": "No tienes permiso para eliminar este producto"},
@@ -303,7 +305,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Obtener límite de resultados (por defecto todos los productos)
             limit = request.query_params.get("limit", None)
             try:
                 if limit:
@@ -313,18 +314,15 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 limit = None
 
-            # Obtener el tipo de ordenamiento
             sort_by = request.query_params.get("sort_by", "margin_percent")
             if sort_by not in ["margin_percent", "margin_value", "sales_volume"]:
                 sort_by = "margin_percent"
 
-            # Obtenemos todos los productos de las compañías del usuario
             all_products = []
             for company in companies:
                 products = self.service.get_all_by_company(company)
                 all_products.extend(products)
 
-            # Calculamos métricas de rentabilidad para cada producto
             from django.db.models import Sum, Count
             from apps.sale.models import Sale
             from apps.purchase.models import Purchase
@@ -332,7 +330,6 @@ class ProductViewSet(viewsets.ViewSet):
             product_metrics = []
 
             for product in all_products:
-                # Obtenemos las ventas del producto
                 sales = Sale.objects.filter(
                     product=product, company__in=companies
                 ).aggregate(
@@ -341,20 +338,16 @@ class ProductViewSet(viewsets.ViewSet):
                     transactions=Count("id"),
                 )
 
-                # Obtenemos las compras del producto
                 purchases = Purchase.objects.filter(
                     product=product, company__in=companies
                 ).aggregate(
                     total_cost=Sum("total_cost"), total_quantity=Sum("quantity")
                 )
 
-                # Calculamos las métricas de rentabilidad
                 total_sales = sales["total_sales"] or 0
                 total_quantity_sold = sales["total_quantity"] or 0
                 total_cost = purchases["total_cost"] or 0
                 total_quantity_purchased = purchases["total_quantity"] or 0
-
-                # Evitar división por cero
                 avg_sale_price = (
                     total_sales / total_quantity_sold
                     if total_quantity_sold > 0
@@ -366,7 +359,6 @@ class ProductViewSet(viewsets.ViewSet):
                     else 0
                 )
 
-                # Cálculo de márgenes
                 margin_value = avg_sale_price - avg_purchase_price
                 margin_percent = (
                     (margin_value / avg_sale_price * 100) if avg_sale_price > 0 else 0
@@ -388,7 +380,6 @@ class ProductViewSet(viewsets.ViewSet):
                     }
                 )
 
-            # Ordenamos por el campo seleccionado
             if sort_by == "margin_percent":
                 product_metrics.sort(key=lambda x: x["margin_percent"], reverse=True)
             elif sort_by == "margin_value":
@@ -396,7 +387,6 @@ class ProductViewSet(viewsets.ViewSet):
             elif sort_by == "sales_volume":
                 product_metrics.sort(key=lambda x: x["sales_volume"], reverse=True)
 
-            # Aplicamos el límite si se especificó
             if limit:
                 product_metrics = product_metrics[:limit]
 
@@ -417,7 +407,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Obtener límite de resultados (por defecto todos los productos)
             limit = request.query_params.get("limit", None)
             try:
                 if limit:
@@ -427,21 +416,17 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 limit = None
 
-            # Parámetro opcional para filtrar productos sin stock
             include_zero_stock = (
                 request.query_params.get("include_zero_stock", "false").lower()
                 == "true"
             )
 
-            # Definimos criterios para considerar un producto de baja rotación (en días)
             ROTATION_THRESHOLDS = {
-                "critical": 120,  # Más de 120 días sin vender = rotación crítica
-                "low": 60,  # Entre 60 y 120 días = rotación baja
-                "normal": 30,  # Entre 30 y 60 días = rotación normal
-                # Menos de 30 días = rotación alta
+                "critical": 120,
+                "low": 60,
+                "normal": 30,
             }
 
-            # Obtenemos todos los productos de las compañías del usuario
             all_products = []
             for company in companies:
                 products = self.service.get_all_by_company(company)
@@ -454,37 +439,28 @@ class ProductViewSet(viewsets.ViewSet):
             from datetime import datetime, timezone, timedelta
             from django.utils import timezone as django_timezone
 
-            # Usamos timezone de Django para obtener la hora actual
             today = django_timezone.now()
 
-            # Analizamos la rotación de cada producto
             rotation_data = []
 
             for product in all_products:
-                # Buscamos la fecha de la última venta
                 last_sale = Sale.objects.filter(
                     product=product, company__in=companies
                 ).aggregate(last_date=Max("date"))
 
-                # Calculamos días desde la última venta
                 last_sale_date = last_sale["last_date"]
 
                 if last_sale_date:
-                    # Aseguramos que last_sale_date tenga timezone si no lo tiene
                     if last_sale_date.tzinfo is None:
                         last_sale_date = last_sale_date.replace(
                             tzinfo=django_timezone.utc
                         )
-
-                    # Calculamos la diferencia pero nos aseguramos que no sea negativa
                     days_diff = (today - last_sale_date).days
-                    days_since_last_sale = max(0, days_diff)  # Nunca negativo
+                    days_since_last_sale = max(0, days_diff)
                 else:
-                    # Si nunca se ha vendido, usamos un valor alto
-                    days_since_last_sale = 999  # Nunca vendido
+                    days_since_last_sale = 999
                     last_sale_date = None
 
-                # Determinamos la categoría de rotación
                 if days_since_last_sale >= ROTATION_THRESHOLDS["critical"]:
                     rotation_category = "Crítica"
                 elif days_since_last_sale >= ROTATION_THRESHOLDS["low"]:
@@ -494,10 +470,8 @@ class ProductViewSet(viewsets.ViewSet):
                 else:
                     rotation_category = "Alta"
 
-                # Calculamos el valor del inventario estancado
                 inventory_value = float(product.price * product.stock)
 
-                # Calculamos ventas del último año para el índice de rotación
                 from django.db.models import Sum
                 from datetime import timedelta
 
@@ -509,8 +483,6 @@ class ProductViewSet(viewsets.ViewSet):
 
                 total_sales_last_year = yearly_sales["total_quantity"] or 0
 
-                # Índice de rotación = Ventas anuales / Stock promedio
-                # Usamos el stock actual como aproximación al stock promedio
                 rotation_index = (
                     total_sales_last_year / product.stock if product.stock > 0 else 0
                 )
@@ -520,9 +492,11 @@ class ProductViewSet(viewsets.ViewSet):
                     "name": product.name,
                     "current_stock": product.stock,
                     "days_since_last_sale": days_since_last_sale,
-                    "last_sale_date": last_sale_date.strftime("%Y-%m-%d")
-                    if last_sale_date
-                    else "Nunca vendido",
+                    "last_sale_date": (
+                        last_sale_date.strftime("%Y-%m-%d")
+                        if last_sale_date
+                        else "Nunca vendido"
+                    ),
                     "rotation_category": rotation_category,
                     "inventory_value": inventory_value,
                     "rotation_index": float(rotation_index),
@@ -531,14 +505,10 @@ class ProductViewSet(viewsets.ViewSet):
 
                 rotation_data.append(product_data)
 
-            # Ordenamos por días desde la última venta (descendente)
             rotation_data.sort(key=lambda x: x["days_since_last_sale"], reverse=True)
 
-            # Aplicamos el límite si se especificó
             if limit:
                 rotation_data = rotation_data[:limit]
-
-            # Calculamos estadísticas globales
             total_products = len(rotation_data)
             critical_rotation_products = sum(
                 1 for p in rotation_data if p["rotation_category"] == "Crítica"
@@ -576,7 +546,6 @@ class ProductViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Obtener límite de resultados (por defecto muestra todos los productos)
             limit = request.query_params.get("limit", None)
             try:
                 if limit:
@@ -586,17 +555,14 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 limit = None
 
-            # Parámetro para filtrar productos con stock bajo un umbral
             min_stock_threshold = request.query_params.get("min_stock", 10)
             try:
                 min_stock_threshold = int(min_stock_threshold)
             except ValueError:
                 min_stock_threshold = 10
 
-            # Parámetro para mostrar todos los productos (sin filtrar)
             show_all = request.query_params.get("show_all", "false").lower() == "true"
 
-            # Periodo de análisis en días (para calcular la velocidad de venta)
             analysis_period_days = request.query_params.get("period", 30)
             try:
                 analysis_period_days = int(analysis_period_days)
@@ -605,7 +571,6 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 analysis_period_days = 30
 
-            # Tiempo de entrega estimado en días (de pedido a recepción)
             lead_time_days = request.query_params.get("lead_time", 7)
             try:
                 lead_time_days = int(lead_time_days)
@@ -614,44 +579,33 @@ class ProductViewSet(viewsets.ViewSet):
             except ValueError:
                 lead_time_days = 7
 
-            # Obtener todos los productos (con stock > 0 o todos)
             all_products = []
             for company in companies:
                 products = self.service.get_all_by_company(company)
                 all_products.extend(products)
-
-            # Importar módulos necesarios
             from django.db.models import Sum
             from apps.sale.models import Sale
             from django.utils import timezone
             from datetime import timedelta
             import math
 
-            # Fecha de inicio del período de análisis
             now = timezone.now()
             start_date = now - timedelta(days=analysis_period_days)
 
-            # Lista para almacenar los resultados
             forecast_data = []
 
             for product in all_products:
-                # Obtener ventas del periodo de análisis
                 sales_in_period = Sale.objects.filter(
                     product=product, company__in=companies, date__gte=start_date
                 ).aggregate(total_quantity=Sum("quantity"))
 
                 total_sold = sales_in_period["total_quantity"] or 0
 
-                # Calcular la tasa de venta diaria
                 daily_sales_rate = (
                     total_sold / analysis_period_days if analysis_period_days > 0 else 0
                 )
-
-                # Stock actual
                 current_stock = product.stock
 
-                # Días hasta agotamiento del stock (si la tasa de venta es > 0)
-                # Limitamos a un máximo de 3650 días (10 años) para evitar errores de rango de fecha
                 if daily_sales_rate > 0:
                     days_until_stockout = min(
                         3650, math.ceil(current_stock / daily_sales_rate)
@@ -659,41 +613,33 @@ class ProductViewSet(viewsets.ViewSet):
                 else:
                     days_until_stockout = None
 
-                # Fecha estimada de agotamiento
                 stockout_date = (
                     now + timedelta(days=days_until_stockout)
                     if days_until_stockout is not None
                     else None
                 )
 
-                # Determinar si es necesario hacer un pedido pronto
-                # (si el stock se agotará en un tiempo menor o igual al tiempo de entrega + un margen de seguridad)
                 reorder_needed = (
                     days_until_stockout is not None
                     and days_until_stockout <= (lead_time_days + 5)
-                )  # 5 días de margen
+                )
 
-                # Fecha sugerida para hacer el pedido
-                # (fecha de agotamiento - tiempo de entrega - margen de seguridad)
                 reorder_date = (
                     (stockout_date - timedelta(days=lead_time_days + 5))
                     if stockout_date
                     else None
                 )
 
-                # Cantidad sugerida para pedir
-                # (tasa diaria * (tiempo de entrega + periodo de análisis como stock de seguridad))
                 suggested_reorder_quantity = math.ceil(
                     daily_sales_rate * (lead_time_days + analysis_period_days)
                 )
 
-                # Prioridad de reabastecimiento (más bajo = más urgente)
                 if days_until_stockout is None:
                     priority = "Baja"
                     days_to_reorder = None
                 elif days_until_stockout <= lead_time_days:
                     priority = "Alta"
-                    days_to_reorder = 0  # Pedir inmediatamente
+                    days_to_reorder = 0
                 elif days_until_stockout <= lead_time_days * 2:
                     priority = "Media"
                     days_to_reorder = max(0, days_until_stockout - lead_time_days)
@@ -707,12 +653,14 @@ class ProductViewSet(viewsets.ViewSet):
                     "current_stock": current_stock,
                     "daily_sales_rate": round(daily_sales_rate, 2),
                     "total_sold_in_period": total_sold,
-                    "days_until_stockout": days_until_stockout
-                    if days_until_stockout is not None
-                    else "N/A",
-                    "stockout_date": stockout_date.strftime("%Y-%m-%d")
-                    if stockout_date
-                    else "N/A",
+                    "days_until_stockout": (
+                        days_until_stockout
+                        if days_until_stockout is not None
+                        else "N/A"
+                    ),
+                    "stockout_date": (
+                        stockout_date.strftime("%Y-%m-%d") if stockout_date else "N/A"
+                    ),
                     "reorder_needed": reorder_needed,
                     "days_to_reorder": days_to_reorder,
                     "suggested_quantity": suggested_reorder_quantity,
@@ -724,8 +672,6 @@ class ProductViewSet(viewsets.ViewSet):
 
                 forecast_data.append(forecast_item)
 
-            # Filtrar los productos con stock por debajo del umbral o que necesiten reorden pronto
-            # Solo si no se solicitó mostrar todos
             if not show_all:
                 forecast_data = [
                     p
@@ -733,18 +679,15 @@ class ProductViewSet(viewsets.ViewSet):
                     if p["current_stock"] <= min_stock_threshold or p["reorder_needed"]
                 ]
 
-            # Ordenar por urgencia (días hasta el reorden)
             forecast_data.sort(
-                key=lambda x: x["days_to_reorder"]
-                if x["days_to_reorder"] is not None
-                else 9999
+                key=lambda x: (
+                    x["days_to_reorder"] if x["days_to_reorder"] is not None else 9999
+                )
             )
 
-            # Aplicar límite si se especificó
             if limit:
                 forecast_data = forecast_data[:limit]
 
-            # Estadísticas generales
             products_to_reorder = sum(1 for p in forecast_data if p["reorder_needed"])
             total_reorder_cost = sum(
                 p["estimated_reorder_cost"]
@@ -843,4 +786,125 @@ class ProductViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="import-file",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    @custom_permission_required("create_product")
+    def import_products(self, request):
+        try:
+            companies = self.company_service.get_all_by_user(request.user)
+            if not companies:
+                return Response(
+                    {"error": "El usuario no tiene compañías asignadas"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            company = companies[0]
+
+            if "file" not in request.FILES:
+                return Response(
+                    {"error": "No se ha proporcionado ningún archivo"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            uploaded_file = request.FILES["file"]
+
+            file_extension = uploaded_file.name.split(".")[-1].lower()
+            if file_extension not in ["csv", "xlsx", "xls"]:
+                return Response(
+                    {
+                        "error": "Formato de archivo no soportado. Por favor, utilice CSV o Excel (.xlsx, .xls)"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if file_extension == "csv":
+                try:
+                    df = pd.read_csv(uploaded_file, encoding="utf-8")
+                except UnicodeDecodeError:
+                    uploaded_file.seek(0)
+                    df = pd.read_csv(uploaded_file, encoding="latin-1")
+            else:
+                df = pd.read_excel(uploaded_file)
+
+            if df.empty:
+                return Response(
+                    {"error": "El archivo no contiene datos"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            required_columns = ["name", "description", "price", "stock"]
+            missing_columns = [col for col in required_columns if col not in df.columns]
+
+            if missing_columns:
+                return Response(
+                    {
+                        "error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            stats = {"total": len(df), "created": 0, "errors": 0, "error_details": []}
+
+            with transaction.atomic():
+                for index, row in df.iterrows():
+                    try:
+                        product_data = {
+                            "name": str(row["name"]),
+                            "description": str(row["description"]),
+                            "price": float(row["price"]),
+                            "stock": int(row["stock"]),
+                            "company": company,
+                        }
+
+                        if product_data["price"] < 0:
+                            raise ValueError(f"Precio negativo en fila {index + 1}")
+
+                        if product_data["stock"] < 0:
+                            raise ValueError(f"Stock negativo en fila {index + 1}")
+
+                        product = Product(**product_data)
+                        product.save()
+                        stats["created"] += 1
+
+                    except Exception as e:
+                        stats["errors"] += 1
+                        stats["error_details"].append(
+                            {"row": index + 1, "error": str(e)}
+                        )
+
+            if stats["errors"] == 0:
+                return Response(
+                    {
+                        "message": f"Importación exitosa. {stats['created']} productos creados.",
+                        "stats": stats,
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            elif stats["created"] > 0:
+                return Response(
+                    {
+                        "message": f"Importación parcial. {stats['created']} productos creados, {stats['errors']} errores.",
+                        "stats": stats,
+                    },
+                    status=status.HTTP_207_MULTI_STATUS,
+                )
+            else:
+                return Response(
+                    {
+                        "message": "Error en la importación. No se creó ningún producto.",
+                        "stats": stats,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Error en el proceso de importación: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

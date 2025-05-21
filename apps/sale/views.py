@@ -89,26 +89,22 @@ class SalesViewSet(viewsets.ViewSet):
             company = companies[0]
 
             product_id = request.data.get("product")
-            product = Product.objects.filter(id=product_id,
-                                             company=company).first()
+            product = Product.objects.filter(id=product_id, company=company).first()
             if not product:
                 return Response(
-                    {
-                        "error":
-                        "El producto no existe o no pertenece a tu compañía"
-                    },
+                    {"error": "El producto no existe o no pertenece a tu compañía"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             from django.utils import timezone
-            
+
             serializer = SaleSerializer(data=request.data)
             if serializer.is_valid():
-                sale = serializer.save(company=company, sold_by=request.user, date=timezone.now())
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+                sale = serializer.save(
+                    company=company, sold_by=request.user, date=timezone.now()
+                )
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)},
@@ -139,8 +135,7 @@ class SalesViewSet(viewsets.ViewSet):
             if serializer.is_valid():
                 updated_sale = serializer.save(company=sale.company)
                 return Response(serializer.data)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)},
@@ -218,8 +213,7 @@ class SalesViewSet(viewsets.ViewSet):
 
             serializer = SalesPredictionSerializer(data=request.data)
             if not serializer.is_valid():
-                return Response(serializer.errors,
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             product_id = serializer.validated_data.get("product_id")
             days_history = serializer.validated_data.get("days_history", 90)
@@ -227,27 +221,24 @@ class SalesViewSet(viewsets.ViewSet):
 
             if product_id:
                 product = Product.objects.filter(
-                    id=product_id, company__in=companies).first()
+                    id=product_id, company__in=companies
+                ).first()
                 if not product:
                     return Response(
-                        {
-                            "error":
-                            "El producto no existe o no pertenece a tu compañía"
-                        },
+                        {"error": "El producto no existe o no pertenece a tu compañía"},
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
             predictor = SalesPredictor(companies[0])
 
-            success = predictor.train_model(product_id=product_id,
-                                            days_back=days_history,
-                                            time_unit=time_unit)
+            success = predictor.train_model(
+                product_id=product_id, days_back=days_history, time_unit=time_unit
+            )
 
             if not success:
                 return Response(
                     {
-                        "error":
-                        "No hay suficientes datos históricos para entrenar el modelo"
+                        "error": "No hay suficientes datos históricos para entrenar el modelo"
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -257,7 +248,8 @@ class SalesViewSet(viewsets.ViewSet):
 
             return Response(
                 {"message": "Modelo entrenado y guardado exitosamente"},
-                status=status.HTTP_200_OK)
+                status=status.HTTP_200_OK,
+            )
 
         except Exception as e:
             return Response(
@@ -278,8 +270,7 @@ class SalesViewSet(viewsets.ViewSet):
 
             serializer = SalesPredictionSerializer(data=request.data)
             if not serializer.is_valid():
-                return Response(serializer.errors,
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             product_id = serializer.validated_data.get("product_id")
             days_ahead = serializer.validated_data.get("days_ahead", 30)
@@ -288,23 +279,20 @@ class SalesViewSet(viewsets.ViewSet):
 
             if product_id:
                 product = Product.objects.filter(
-                    id=product_id, company__in=companies).first()
+                    id=product_id, company__in=companies
+                ).first()
                 if not product:
                     return Response(
-                        {
-                            "error":
-                            "El producto no existe o no pertenece a tu compañía"
-                        },
+                        {"error": "El producto no existe o no pertenece a tu compañía"},
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
             predictor = SalesPredictor(companies[0])
-            predictions = predictor.predict_future_sales(product_id=product_id,
-                                                         days_ahead=days_ahead,
-                                                         time_unit=time_unit)
+            predictions = predictor.predict_future_sales(
+                product_id=product_id, days_ahead=days_ahead, time_unit=time_unit
+            )
 
-            result_serializer = SalesPredictionResultSerializer(predictions,
-                                                                many=True)
+            result_serializer = SalesPredictionResultSerializer(predictions, many=True)
             return Response(result_serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -348,23 +336,28 @@ class SalesViewSet(viewsets.ViewSet):
 
             from django.db.models import Count, F
 
-            top_products = (sales_query.values(
-                "product", "product__name", "product__price").annotate(
+            top_products = (
+                sales_query.values("product", "product__name", "product__price")
+                .annotate(
                     total_quantity=Sum("quantity"),
                     total_sales=Sum("total_price"),
                     count=Count("id"),
-                ).order_by("-total_quantity")[:limit])
+                )
+                .order_by("-total_quantity")[:limit]
+            )
 
             result = []
             for item in top_products:
-                result.append({
-                    "id": item["product"],
-                    "name": item["product__name"],
-                    "quantity_sold": item["total_quantity"],
-                    "total_sales": float(item["total_sales"]),
-                    "unit_price": float(item["product__price"]),
-                    "transactions": item["count"],
-                })
+                result.append(
+                    {
+                        "id": item["product"],
+                        "name": item["product__name"],
+                        "quantity_sold": item["total_quantity"],
+                        "total_sales": float(item["total_sales"]),
+                        "unit_price": float(item["product__price"]),
+                        "transactions": item["count"],
+                    }
+                )
 
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
@@ -409,32 +402,37 @@ class SalesViewSet(viewsets.ViewSet):
 
             sales = Sale.objects.filter(company__in=companies, date__year=year)
 
-            purchases = Purchase.objects.filter(company__in=companies,
-                                                date__year=year)
+            purchases = Purchase.objects.filter(company__in=companies, date__year=year)
 
-            sales_by_month = (sales.annotate(
-                month=ExtractMonth("date")).values("month").annotate(
-                    total=Sum("total_price")).order_by("month"))
+            sales_by_month = (
+                sales.annotate(month=ExtractMonth("date"))
+                .values("month")
+                .annotate(total=Sum("total_price"))
+                .order_by("month")
+            )
 
-            purchases_by_month = (purchases.annotate(
-                month=ExtractMonth("date")).values("month").annotate(
-                    total=Sum("total_cost")).order_by("month"))
+            purchases_by_month = (
+                purchases.annotate(month=ExtractMonth("date"))
+                .values("month")
+                .annotate(total=Sum("total_cost"))
+                .order_by("month")
+            )
 
             sales_dict = {
-                item["month"]: float(item["total"])
-                for item in sales_by_month
+                item["month"]: float(item["total"]) for item in sales_by_month
             }
             purchases_dict = {
-                item["month"]: float(item["total"])
-                for item in purchases_by_month
+                item["month"]: float(item["total"]) for item in purchases_by_month
             }
 
             for month in range(1, 13):
-                monthly_data.append({
-                    "name": month_names[month],
-                    "entradas": purchases_dict.get(month, 0),
-                    "salidas": sales_dict.get(month, 0),
-                })
+                monthly_data.append(
+                    {
+                        "name": month_names[month],
+                        "entradas": purchases_dict.get(month, 0),
+                        "salidas": sales_dict.get(month, 0),
+                    }
+                )
 
             return Response(monthly_data, status=status.HTTP_200_OK)
         except Exception as e:
